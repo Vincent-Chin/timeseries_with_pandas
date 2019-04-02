@@ -1,0 +1,79 @@
+EXERCISES
+---------
+
+1) Load Data For SPY from 2016-01-01 to 2018-08-20 into a Pandas data frame using pandas_datareader, with
+    Google as your data source.  You will need to use pandas_datareader for this.  Try running from your Python console:
+        import pandas_datareader as pdr
+        dir(pdr)
+    https://pandas-datareader.readthedocs.io/en/latest/
+
+2) Save this data to disk.  Pandas has functionality to write to and load from csv.
+    https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.to_csv.html
+
+3) Load this data from disk (so you don't need to go online every time.)
+    https://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html
+
+4) Find the 20-day moving average for SPY's Close price, and append it to your SPY data as a dataframe.  You want to
+    do this using rolling array methods.  Do not do this with iterative code (that defeats the point of pandas.)  The
+    correct solution is less than five lines of code.
+    https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.rolling.html
+
+5) Find the upper and lower bollinger bands over 20 days for the SPY.  Use 2 deviations as the band range. Realize that
+    the upper bollinger band is defined as mean + 2 standard deviations, while the lower is mean - 2 standard
+    deviations.  This borrows heavily from Exercise 4; the solution is also less than five lines of code.
+
+6) In finance you're often asked to operate on returns data instead of price data.  Convert the SPY Close price to
+    returns and append it to the SPY data.  Recall that returns are defined as (today - yesterday) / yesterday.
+
+7) Sometimes pre-built functions aren't enough, and you need to create your own.  Let's use the returns from #6 to
+    compute a custom indicator:
+        a) Generate a column of volume-weighted returns from the last 20 days and append it to your SPY data.  This
+            will be our function input.
+        b) Compute two running sums -> one of the largest volume-weighted up-day streak, and one of the largest
+            volume-weighted down-day streak.
+            Hint: you'll need to use iterative code *within* your function to do this.  Start with a current up-sum,
+             current down-sum, best up-sum, and best down-sum.  When you encounter an up-day, add the volume-weighted
+             quantity to your current up-sum, and compare your current up-sum to your best up-sum.  If it's greater,
+             replace the best up-sum.  Then compare your current down-sum versus your best down-sum.  If it's lesser
+             (ie more negative), replace the best down-sum.  Then reset the current down-sum to zero (since today is
+             an up-day.)  Do the opposite for down days.
+        c) Sum up the absolute values of the volume-weighted returns into a single number.
+        d) Add your best up-sum to your best down-sum.  Your best down-sum is negative so this is the distance between
+            your best up-sum and best down-sum.  Divide this by the number in step c.  This gives you a single number
+            between -1 and +1, where -1 represents a continuous down streak, 1 represents a continuous up streak, and
+            zero means the stock flopped around.  We're going to use this as a momentum indicator.
+        e) Apply this indicator to your SPY volume-weighted returns from step a, and append it to your SPY data.
+
+
+EXERCISES WITHOUT SOLUTIONS
+---------------------------
+Note: I didn't finish the questions below; they're included here just for completeness.
+
+8) Now that we have several indicators, let's try some back testing.  Before we start, you should be aware that there's
+    a lot of statistical issues that you need to calibrate for a backtest: is the backtest data sufficiently diverse?
+    Is our result from curve-fitting (and therefore useless for the future?)  Is the training data statistically large
+    enough for a valid conclusion?  What if the data is too old?  This is all the field of statistics.  I'm going to
+    gloss over all of it and just concentrate on the mechanical code for a back test.
+
+    We're going to start with the traditional, iterative approach.  Often, back-testing requires an iterative
+    approach because it is path-dependent.  That is, you do different things based on what you did a moment ago.
+    For instance, if you're flat, you might go long.  But if you're already long, you might ignore a signal, or
+    even sell.
+
+    Most people are used to this method of thinking though, so we'll build this first.
+
+    Let's implement a simple trading strategy using our indicators.  The rules will be as follows:
+
+        If (VMoM of today > .75) and (Close of today) >= (Upper Bollinger of yesterday), BUY.
+        If Close < Mean, COVER.  (Exit out of longs, do not go short.)
+
+        If (VMoM of today < -.75) and (Close of today) <= (Lower Bollinger of yesterday), SHORT.
+        If Close < Mean, SELL.  (Exit out of shorts, do not go long.)
+
+    a) Build a column that implements these rules and tags your action as LONG, SHORT, or FLAT.
+    b) Now write a function to iterate through your action data, and tracks your position and profit-loss.
+
+9) Do a non-path dependent backtest given this data.
+
+10) There is a faster way to do this than to create indicators and brute-force backtest them.  Let's run a
+    regression using our indicators and see if any of them have any explanatory power.
